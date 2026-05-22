@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>עורך ברושור — תיאטרון הגן של סיון</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;700;900&display=swap');
+:root {
+  --bg:#fff9f0;--accent:#8b1a4a;--accent2:#c45080;
+  --text:#3a2040;--text-light:#6b3a6b;
+  --card-bg:#fff0f5;--card-border:#c45080;
+  --cta-from:#8b1a4a;--cta-to:#c45080;
+  --grad-end:#fff9f0;--div1:#e8a0c0;--div2:#c45080;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Rubik',sans-serif;background:#12121e;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── TOPBAR ── */
+.topbar{background:#0d0d18;border-bottom:1px solid #2a2a3e;padding:7px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;direction:rtl;}
+.topbar-title{font-size:.85rem;font-weight:700;color:#ffcce0;margin-left:auto;white-space:nowrap;}
+.tab-btn{background:#1e1e30;border:1px solid #3a3a55;color:#ccc;padding:4px 12px;border-radius:20px;cursor:pointer;font-family:'Rubik',sans-serif;font-size:.78rem;transition:all .15s;}
+.tab-btn.active{background:#c45080;border-color:#c45080;color:#fff;}
+.tab-btn:hover:not(.active){background:#2a2a3e;}
+.dl-btn{background:linear-gradient(135deg,#1a6a3a,#28a060);border:none;color:#fff;padding:5px 14px;border-radius:20px;cursor:pointer;font-family:'Rubik',sans-serif;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:5px;transition:opacity .15s;}
+.dl-btn:hover{opacity:.85;}
+.dl-btn.loading{opacity:.6;pointer-events:none;}
+
+/* ── LAYOUT ── */
+.editor-body{display:flex;flex:1;min-height:0;}
+.sidebar{width:296px;min-width:260px;background:#161624;color:#ddd;border-left:1px solid #2a2a3e;overflow-y:auto;padding:12px;direction:rtl;}
+.panel{display:none;}.panel.active{display:block;}
+.sec-label{font-size:.68rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:1px;margin:14px 0 7px;padding-bottom:4px;border-bottom:1px solid #2a2a3e;}
+.sec-label:first-child{margin-top:0;}
+
+/* ── PREVIEW ── */
+.preview-wrap{flex:1;background:#1a1a2e;overflow-y:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start;}
+
+/* ════════════════════════════════
+   BROCHURE
+════════════════════════════════ */
+.card{width:100%;max-width:560px;background:var(--bg);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:max-width .3s,height .3s;}
+.fmt-opt{padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.78rem;color:#ccc;white-space:nowrap;transition:background .12s;}
+.fmt-opt:hover{background:#2a2a3e;color:#fff;}
+.fmt-opt.active{background:#c45080;color:#fff;}
+
+/* COLLAGE */
+.collage{width:100%;height:clamp(200px,45vw,320px);display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;position:relative;background:var(--grad-end);}
+.collage-cell{overflow:hidden;position:relative;cursor:grab;}
+.collage-cell:active{cursor:grabbing;}
+.collage-cell.tall{grid-row:1/3;}
+.collage-cell img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;transition:transform .05s;}
+.cell-ov{position:absolute;inset:0;z-index:3;border:2px solid transparent;transition:border-color .15s;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;gap:3px;}
+.cell-ov:hover{border-color:rgba(196,80,128,.6);}
+.cell-ov.active-cell{border-color:#c45080!important;}
+.cell-btn{background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:5px;padding:2px 7px;font-size:.65rem;cursor:pointer;opacity:0;transition:opacity .15s;white-space:nowrap;}
+.cell-ov:hover .cell-btn{opacity:1;}
+.collage-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,var(--grad-end) 88%);pointer-events:none;z-index:1;}
+/* ── FORMAT OVERRIDES (must come after base .collage) ── */
+.card.fmt-story{max-width:360px;}
+.card.fmt-story .collage{height:480px;}
+.card.fmt-square{max-width:480px;}
+.card.fmt-square .collage{height:260px;}
+.card.fmt-post{max-width:440px;}
+.card.fmt-post .collage{height:300px;}
+.card.fmt-a4{max-width:595px;}
+.card.fmt-a4 .collage{height:320px;}
+.title-on-image{position:absolute;bottom:-26px;right:0;left:0;text-align:center;z-index:2;padding:0 8px 6px;}
+.title-on-image h1{font-size:clamp(1.5rem,5.5vw,2.2rem);font-weight:900;color:var(--accent);text-shadow:0 2px 10px rgba(255,255,255,.95);line-height:1.1;}
+
+
+/* BODY */
+.b-body{padding:clamp(36px,8vw,52px) clamp(14px,4vw,24px) clamp(14px,4vw,24px);background:var(--bg);}
+.tagline{font-size:clamp(.82rem,2.8vw,.95rem);color:var(--text-light);font-weight:700;text-align:center;margin-bottom:12px;}
+.divider{height:2px;background:linear-gradient(to left,transparent,var(--div1),var(--div2),var(--div1),transparent);margin:10px 0;border-radius:2px;}
+.intro{font-size:clamp(.85rem,3vw,.92rem);color:var(--text);line-height:1.75;margin-bottom:6px;}
+.services-title{font-size:clamp(.9rem,3vw,1rem);font-weight:700;color:var(--accent);margin:14px 0 8px;text-align:center;}
+.services{display:flex;flex-direction:column;gap:8px;}
+.service{background:var(--card-bg);border-right:4px solid var(--card-border);border-radius:10px;padding:9px 12px;}
+.service-name{font-weight:700;color:var(--accent);font-size:clamp(.88rem,3vw,.93rem);margin-bottom:3px;}
+.service-desc{font-size:clamp(.82rem,2.8vw,.86rem);color:var(--text);line-height:1.6;}
+.cta{margin-top:14px;background:linear-gradient(135deg,var(--cta-from),var(--cta-to));border-radius:12px;padding:clamp(10px,3vw,14px) clamp(12px,3vw,18px);text-align:center;color:#fff;}
+.cta-text{font-size:clamp(.85rem,3vw,.92rem);margin-bottom:10px;line-height:1.6;}
+.contact-line{display:flex;align-items:center;justify-content:center;gap:8px;margin:5px 0;font-size:clamp(.9rem,3.2vw,.98rem);font-weight:600;color:rgba(255,255,255,.85);}
+.contact-line a{color:#fff;text-decoration:none;font-weight:700;}
+.footer-note{text-align:center;font-size:clamp(.72rem,2.5vw,.78rem);color:var(--text-light);margin-top:12px;font-style:italic;}
+[contenteditable]{outline:none;}
+[contenteditable]:focus{background:rgba(196,80,128,.06);border-radius:3px;}
+
+/* ════════════════════════════════
+   FLOATING RT TOOLBAR
+════════════════════════════════ */
+#rt-toolbar{
+  position:fixed; bottom:0; left:0; right:0; z-index:9999;
+  background:#0f0f1e; border-top:2px solid #c45080;
+  padding:7px 16px; display:none; align-items:center;
+  gap:5px; box-shadow:0 -4px 20px rgba(0,0,0,.7);
+  direction:ltr; flex-wrap:nowrap; overflow-x:auto;
+}
+#rt-toolbar.visible{display:flex;}
+/* push brochure up when toolbar visible */
+body.rt-open .preview-wrap{ padding-bottom: 72px; }
+.rt-btn{background:#2a2a3e;border:1px solid #3a3a55;color:#eee;width:27px;height:27px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:'Rubik',sans-serif;display:flex;align-items:center;justify-content:center;transition:background .1s;position:relative;}
+.rt-btn:hover{background:#3a3a55;}
+.rt-btn.on{background:#c45080;border-color:#c45080;}
+.size-preset,.weight-preset{display:block;width:100%;background:#1e1e30;border:1px solid #2a2a3e;color:#ccc;border-radius:6px;padding:5px 8px;font-size:.75rem;cursor:pointer;text-align:right;margin-bottom:3px;font-family:'Rubik',sans-serif;transition:background .1s;}
+.size-preset:last-child,.weight-preset:last-child{margin-bottom:0;}
+.size-preset:hover,.weight-preset:hover{background:#2a2a3e;color:#fff;}
+.size-preset.active,.weight-preset.active{background:#c45080;border-color:#c45080;color:#fff;}
+.weight-preset[disabled]{opacity:.4;cursor:not-allowed;}
+.rt-sep{width:1px;height:18px;background:#3a3a55;margin:0 2px;}
+.rt-sel{background:#2a2a3e;border:1px solid #3a3a55;color:#eee;border-radius:6px;padding:2px 4px;font-size:.72rem;font-family:'Rubik',sans-serif;cursor:pointer;height:27px;}
+.color-swatch{width:22px;height:22px;border-radius:5px;cursor:pointer;border:2px solid rgba(255,255,255,.12);transition:transform .1s,border-color .1s;flex-shrink:0;}
+.color-swatch:hover{transform:scale(1.15);border-color:rgba(255,255,255,.4);}
+.color-swatch.empty{background:repeating-linear-gradient(45deg,#333 0,#333 2px,#222 0,#222 50%);background-size:6px 6px;cursor:default;}
+.slot-label-small{font-size:.6rem;color:#555;margin:2px 0 1px;width:100%;direction:rtl;}
+.rt-color-wrap{position:relative;width:27px;height:27px;}
+.rt-color-wrap input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.rt-color-preview{width:100%;height:100%;border-radius:6px;border:1px solid #3a3a55;display:block;}
+
+/* ════════════════════════════════
+   SIDEBAR ELEMENTS
+════════════════════════════════ */
+.field-row{margin-bottom:10px;}
+.fl{font-size:.7rem;color:#888;margin-bottom:4px;display:block;}
+.fi,.ft{width:100%;background:#2a2a3e;border:1px solid #3a3a55;color:#eee;border-radius:7px;padding:6px 9px;font-family:'Rubik',sans-serif;font-size:.82rem;direction:rtl;}
+.ft{min-height:60px;resize:vertical;line-height:1.5;}
+.fi:focus,.ft:focus{outline:none;border-color:#c45080;}
+
+/* theme */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.theme-card{background:#2a2a3e;border:2px solid transparent;border-radius:10px;padding:7px;cursor:pointer;transition:all .15s;text-align:center;}
+.theme-card:hover{transform:scale(1.03);}
+.theme-card.selected{border-color:#fff;}
+.theme-swatch{height:24px;border-radius:5px;margin-bottom:4px;}
+.theme-name{font-size:.7rem;font-weight:700;color:#eee;}
+
+/* images panel */
+.slot-tabs{display:flex;gap:5px;margin-bottom:8px;}
+.slot-tab{flex:1;padding:4px;background:#2a2a3e;border:1px solid #3a3a55;color:#aaa;border-radius:7px;cursor:pointer;font-size:.72rem;text-align:center;transition:all .15s;}
+.slot-tab.active{background:#c45080;border-color:#c45080;color:#fff;}
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;}
+.img-thumb{aspect-ratio:1;overflow:hidden;border-radius:6px;cursor:pointer;border:2px solid transparent;position:relative;}
+.img-thumb img{width:100%;height:100%;object-fit:cover;}
+.img-thumb:hover{border-color:#666;}
+.img-thumb.selected{border-color:#c45080;}
+.img-thumb .tn{position:absolute;bottom:2px;right:3px;font-size:.58rem;background:rgba(0,0,0,.7);color:#fff;padding:1px 3px;border-radius:3px;}
+.ctrl-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.cl{font-size:.7rem;color:#888;min-width:52px;}
+.ctrl-row input[type=range]{flex:1;accent-color:#c45080;}
+.cv{font-size:.7rem;color:#ccc;min-width:34px;text-align:left;}
+.img-actions{display:flex;gap:5px;margin-bottom:8px;}
+.img-act-btn{flex:1;background:#2a2a3e;border:1px solid #3a3a55;color:#ccc;border-radius:7px;padding:5px;font-size:.72rem;cursor:pointer;text-align:center;transition:background .12s;}
+.img-act-btn:hover{background:#3a3a55;color:#fff;}
+.upload-btn{width:100%;background:#1e3a2a;border:1px dashed #3a8055;color:#8adc9a;border-radius:7px;padding:8px;font-size:.78rem;cursor:pointer;text-align:center;margin-bottom:6px;transition:background .12s;}
+.upload-btn:hover{background:#243e2e;}
+
+/* section items */
+.section-item{background:#1e1e30;border-radius:8px;padding:9px;margin-bottom:7px;border:1px solid #2a2a3e;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.section-title{font-size:.75rem;font-weight:700;color:#c45080;}
+.section-toggle{font-size:.7rem;color:#666;cursor:pointer;background:none;border:none;color:#888;padding:2px 5px;}
+.section-toggle:hover{color:#ccc;}
+.divider-toggle{display:flex;align-items:center;gap:6px;font-size:.72rem;color:#aaa;margin-bottom:6px;}
+.divider-toggle input{accent-color:#c45080;}
+.add-btn{width:100%;background:#1e1e30;border:1px dashed #3a3a55;color:#888;border-radius:7px;padding:6px;font-size:.75rem;cursor:pointer;text-align:center;margin-top:6px;transition:all .12s;}
+.add-btn:hover{border-color:#c45080;color:#c45080;}
+.service-editor{background:#252535;border-radius:6px;padding:7px;margin-bottom:5px;position:relative;}
+.se-del{position:absolute;top:5px;left:5px;background:none;border:none;color:#f44;font-size:.75rem;cursor:pointer;}
+
+/* color palette in toolbar */
+.eyedropper-btn{background:#2a2a3e;border:1px solid #3a3a55;color:#eee;width:27px;height:27px;border-radius:6px;cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;}
+.eyedropper-btn:hover{background:#3a3a55;}
+</style>
+</head>
+<body>
+
+<!-- RICH TEXT TOOLBAR -->
+<div id="rt-toolbar">
+  <button class="rt-btn" id="rt-bold" onmousedown="evt_rtCmd(event,'bold')" title="מודגש"><b>B</b></button>
+  <button class="rt-btn" id="rt-italic" onmousedown="evt_rtCmd(event,'italic')" title="נטוי"><i>I</i></button>
+  <button class="rt-btn" id="rt-underline" onmousedown="evt_rtCmd(event,'underline')" title="קו תחתון"><u>U</u></button>
+  <div class="rt-sep"></div>
+  <!-- Size control -->
+  <div style="position:relative;display:flex;align-items:center;gap:2px;">
+    <button class="rt-btn" style="font-size:.7rem;padding:0 3px;" onmousedown="evt_changeSize(event,-1)" title="הקטן">A-</button>
+    <div style="position:relative;">
+      <button class="rt-btn" id="size-display" style="min-width:44px;font-size:.72rem;" onmousedown="evt_toggleSizePop(event)" title="גודל פונט">גודל ▾</button>
+      <div id="size-pop" style="display:none;position:fixed;background:#0f0f1e;border:1px solid #3a3a55;border-radius:10px;padding:6px;z-index:10001;box-shadow:0 4px 20px rgba(0,0,0,.8);direction:rtl;min-width:120px;">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #2a2a3e;">
+          <label style="font-size:.68rem;color:#888;white-space:nowrap;">px מדויק:</label>
+          <input type="number" id="size-input" min="8" max="120" value="16"
+            style="width:52px;background:#2a2a3e;border:1px solid #444;color:#eee;border-radius:5px;padding:3px 5px;font-size:.78rem;"
+            onmousedown="event.stopPropagation()"
+            oninput="liveSize(this.value)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();applyExactSize();}">
+          <button onmousedown="evt_applyExactSize(event)" style="background:#c45080;border:none;color:#fff;border-radius:5px;padding:3px 7px;font-size:.72rem;cursor:pointer;">✓</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;" id="size-presets-grid">
+          <button class="size-preset" data-px="12" onmousedown="evt_rtSize(event,'12px')">12px</button>
+          <button class="size-preset" data-px="14" onmousedown="evt_rtSize(event,'14px')">14px</button>
+          <button class="size-preset" data-px="16" onmousedown="evt_rtSize(event,'16px')">16px</button>
+          <button class="size-preset" data-px="18" onmousedown="evt_rtSize(event,'18px')">18px</button>
+          <button class="size-preset" data-px="20" onmousedown="evt_rtSize(event,'20px')">20px</button>
+          <button class="size-preset" data-px="24" onmousedown="evt_rtSize(event,'24px')">24px</button>
+          <button class="size-preset" data-px="28" onmousedown="evt_rtSize(event,'28px')">28px</button>
+          <button class="size-preset" data-px="32" onmousedown="evt_rtSize(event,'32px')">32px</button>
+          <button class="size-preset" data-px="40" onmousedown="evt_rtSize(event,'40px')">40px</button>
+          <button class="size-preset" data-px="48" onmousedown="evt_rtSize(event,'48px')">48px</button>
+        </div>
+      </div>
+    </div>
+    <button class="rt-btn" style="font-size:.7rem;padding:0 3px;" onmousedown="evt_changeSize(event,1)" title="הגדל">A+</button>
+  </div>
+  <div class="rt-sep"></div>
+  <!-- Weight control -->
+  <div style="position:relative;">
+    <button class="rt-btn" id="weight-display" style="min-width:48px;font-size:.72rem;" onmousedown="evt_toggleWeightPop(event)" title="משקל פונט">משקל ▾</button>
+    <div id="weight-pop" style="display:none;position:fixed;background:#0f0f1e;border:1px solid #3a3a55;border-radius:10px;padding:6px;z-index:10001;box-shadow:0 4px 20px rgba(0,0,0,.8);direction:rtl;min-width:110px;">
+      <button class="weight-preset" data-w="300" onmousedown="evt_rtWeight(event,'300')" style="font-weight:300;">דק (300)</button>
+      <button class="weight-preset" data-w="400" onmousedown="evt_rtWeight(event,'400')" style="font-weight:400;">רגיל (400)</button>
+      <button class="weight-preset" data-w="500" onmousedown="evt_rtWeight(event,'500')" style="font-weight:500;">בינוני (500)</button>
+      <button class="weight-preset" data-w="700" onmousedown="evt_rtWeight(event,'700')" style="font-weight:700;">Bold (700)</button>
+      <button class="weight-preset" data-w="900" onmousedown="evt_rtWeight(event,'900')" style="font-weight:900;">Black (900)</button>
+    </div>
+  </div>
+  <div class="rt-sep"></div>
+  <!-- Single color swatch opens popover -->
+  <div style="position:relative;">
+    <button class="rt-btn" id="tc-swatch" onclick="toggleColorPop()" title="צבע טקסט"
+      style="width:30px;height:27px;background:#c45080;border-color:#c45080;border-radius:6px;padding:0;"></button>
+    <div id="color-pop" style="display:none;position:fixed;bottom:58px;background:#1a1a2e;border:1px solid #3a3a55;border-radius:12px;padding:12px;z-index:10000;box-shadow:0 -4px 24px rgba(0,0,0,.7);direction:ltr;min-width:220px;">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <label style="font-size:.68rem;color:#888;">טקסט</label>
+        <div class="rt-color-wrap" style="width:32px;height:28px;">
+          <div class="rt-color-preview" id="tc-preview" style="background:#c45080;border-radius:5px;"></div>
+          <input type="color" id="rt-tc" value="#c45080" oninput="rtColor(this.value)">
+        </div>
+        <label style="font-size:.68rem;color:#888;margin-right:8px;">רקע</label>
+        <div class="rt-color-wrap" style="width:32px;height:28px;background-image:repeating-linear-gradient(45deg,#555 0,#555 2px,transparent 0,transparent 50%);background-size:6px 6px;border-radius:5px;">
+          <div class="rt-color-preview" id="bg-preview" style="background:transparent;border-radius:5px;opacity:.9;"></div>
+          <input type="color" id="rt-bg" value="#ffe0ef" oninput="rtBg(this.value)">
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;" id="color-slots-row"></div>
+    </div>
+  </div>
+  <div class="rt-sep"></div>
+  <button class="rt-btn" onmousedown="event.preventDefault();rtClear();" style="color:#f88;font-size:.65rem;width:auto;padding:0 8px;" title="נקה עיצוב מהטקסט המסומן">נקה עיצוב</button>
+  <button class="rt-btn" onmousedown="event.preventDefault();resetCurrentElement();" style="color:#fa8;font-size:.62rem;width:auto;padding:0 8px;" title="איפוס אלמנט לברירת מחדל">↺ אלמנט</button>
+  <button class="rt-btn" onmousedown="event.preventDefault();resetAllToDefault();" style="color:#faa;font-size:.62rem;width:auto;padding:0 8px;" title="איפוס כל הטקסטים לברירת מחדל">↺ הכל</button>
+
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-title">🎭 עורך ברושור — תיאטרון הגן של סיון</span>
+  <button class="tab-btn active" onclick="showPanel('colors',this)">🎨 צבעים</button>
+  <button class="tab-btn" onclick="showPanel('images',this)">🖼️ תמונות</button>
+  <button class="tab-btn" onclick="showPanel('texts',this)">✏️ טקסטים</button>
+  <button class="tab-btn" id="undo-btn" onclick="undo()" style="opacity:.4;font-size:.85rem;" title="בטל (Ctrl+Z)">↩</button><button class="tab-btn" id="redo-btn" onclick="redo()" style="opacity:.4;font-size:.85rem;" title="חזור (Ctrl+Y)">↪</button><div style="position:relative;">
+  <button class="tab-btn" id="fmt-btn" onclick="toggleFmtMenu()" style="gap:4px;">📐 פורמט: <span id="fmt-label">חופשי</span> ▾</button>
+  <div id="fmt-menu" style="display:none;position:fixed;top:48px;background:#0f0f1e;border:1px solid #3a3a55;border-radius:10px;padding:6px;z-index:10000;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,.8);">
+    <div class="fmt-opt" onclick="setFormat('free')" data-fmt="free">📄 חופשי</div>
+    <div class="fmt-opt" onclick="setFormat('story')" data-fmt="story">📱 Story (9:16)</div>
+    <div class="fmt-opt" onclick="setFormat('square')" data-fmt="square">⬛ מרובע (1:1)</div>
+    <div class="fmt-opt" onclick="setFormat('post')" data-fmt="post">🖼️ פוסט (4:5)</div>
+    <div class="fmt-opt" onclick="setFormat('a4')" data-fmt="a4">🗒️ A4</div>
+  </div>
+</div>
+<button class="dl-btn" id="dl-btn" onclick="downloadPNG()">⬇ הורד PNG</button>
+</div>
+
+<div class="editor-body">
+<div class="sidebar">
+
+  <!-- COLORS -->
+  <div id="panel-colors" class="panel active">
+    <div class="sec-label">מערכת צבעים</div>
+    <div class="theme-grid" id="themeGrid"></div>
+  </div>
+
+  <!-- IMAGES -->
+  <div id="panel-images" class="panel">
+    <div class="sec-label">סלוט פעיל</div>
+    <div class="slot-tabs">
+      <div class="slot-tab active" onclick="selectSlot('a',this)">ימנית</div>
+      <div class="slot-tab" onclick="selectSlot('b',this)">שמאל עליון</div>
+      <div class="slot-tab" onclick="selectSlot('c',this)">שמאל תחתון</div>
+    </div>
+    <label class="upload-btn">📁 העלה תמונה מהמכשיר<input type="file" accept="image/*" style="display:none" onchange="uploadImage(this)"></label>
+    <div class="img-grid" id="img-picker"></div>
+    <div class="img-actions">
+      <button class="img-act-btn" onclick="flipImg('h')">↔ Flip H</button>
+      <button class="img-act-btn" onclick="flipImg('v')">↕ Flip V</button>
+      <button class="img-act-btn" onclick="resetFlip()">↺ Reset</button>
+    </div>
+    <div class="sec-label">מיקום וזום</div>
+    <div class="ctrl-row">
+      <span class="cl">זום</span>
+      <input type="range" min="100" max="300" value="100" id="ctrl-zoom" oninput="applyImgCtrl()">
+      <span class="cv" id="val-zoom">100%</span>
+    </div>
+    <div class="ctrl-row">
+      <span class="cl">אופקי</span>
+      <input type="range" min="0" max="100" value="50" id="ctrl-x" oninput="applyImgCtrl()">
+      <span class="cv" id="val-x">50%</span>
+    </div>
+    <div class="ctrl-row">
+      <span class="cl">אנכי</span>
+      <input type="range" min="0" max="100" value="50" id="ctrl-y" oninput="applyImgCtrl()">
+      <span class="cv" id="val-y">50%</span>
+    </div>
+  </div>
+
+  <!-- TEXTS -->
+  <div id="panel-texts" class="panel">
+    <div class="sec-label">כותרת ראשית</div>
+    <div class="section-item">
+      <input class="fi" id="s-title" value="תיאטרון הגן של סיון" oninput="document.getElementById('b-title').textContent=this.value">
+    </div>
+
+    <div class="sec-label">תגית / תת-כותרת</div>
+    <div class="section-item">
+      <input class="fi" id="s-tagline" value="🎭 סיפורים שנוגעים בנפש · בובות · מוזיקה · תנועה · דמיון 🎭" oninput="document.getElementById('b-tagline').textContent=this.value">
+      <div class="divider-toggle" style="margin-top:6px;">
+        <input type="checkbox" id="div-after-tagline" checked onchange="toggleDivider('d1',this.checked)">
+        <label for="div-after-tagline">קו מפריד אחרי תגית</label>
+      </div>
+    </div>
+
+    <div class="sec-label">פסקאות פתיחה</div>
+    <div class="section-item">
+      <label class="fl">פסקה ראשונה</label>
+      <textarea class="ft" id="s-p1" oninput="syncHtml('b-intro1',this.value)">שמי סיון עטיה — שחקנית ויוצרת עם ניסיון של למעלה מ־15 שנה בעבודה עם ילדים בגיל הרך ובחינוך המיוחד (גילאי שנה וחצי עד כיתה א').</textarea>
+      <label class="fl" style="margin-top:6px;">פסקה שנייה</label>
+      <textarea class="ft" id="s-p2" oninput="syncHtml('b-intro2',this.value)">במשך השנים פיתחתי את תיאטרון הגן של סיון — מרחב תיאטרלי-חווייתי המשלב סיפורים, בובות, מוזיקה, תנועה ודמיון. אני רואה בתיאטרון צוהר לעולמו הרגשי של הילד — מקום לדבר אל הנפש.</textarea>
+      <div class="divider-toggle" style="margin-top:6px;">
+        <input type="checkbox" id="div-after-intro" checked onchange="toggleDivider('d2',this.checked)">
+        <label for="div-after-intro">קו מפריד אחרי פסקאות</label>
+      </div>
+    </div>
+
+    <div class="sec-label">כותרת שירותים</div>
+    <div class="section-item">
+      <input class="fi" id="s-stitle" value="🌟 לבחירתכם/ן 🌟" oninput="document.getElementById('b-stitle').textContent=this.value">
+    </div>
+
+    <div class="sec-label">רכיבים בקונטיינר <button class="add-btn" style="width:auto;padding:2px 10px;display:inline-block;margin:0 0 0 4px;" onclick="addService()">+ הוסף</button></div>
+    <div id="services-editor"></div>
+
+    <div class="sec-label">קריאה לפעולה (CTA)</div>
+    <div class="section-item">
+      <textarea class="ft" id="s-cta" oninput="document.getElementById('b-cta').textContent=this.value">מוזמנות/ים ליצור קשר — נשמח להתאים את ההצגה המושלמת לגן שלכם/ן 🌸</textarea>
+      <label class="fl" style="margin-top:6px;">טלפון</label>
+      <input class="fi" id="s-phone" value="050-8224309" oninput="syncPhone(this.value)">
+      <label class="fl" style="margin-top:6px;">מייל</label>
+      <input class="fi" id="s-email" value="sivana.theater@gmail.com" oninput="syncEmail(this.value)">
+    </div>
+
+    <div class="sec-label">שורת סיום</div>
+    <div class="section-item">
+      <input class="fi" id="s-footer" value="✨ כי כל ילד ראוי לקסם של תיאטרון אמיתי ✨" oninput="document.getElementById('b-footer').textContent=this.value">
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- PREVIEW -->
+<div class="preview-wrap">
+<div class="card" id="brochure">
+
+  <div class="collage">
+    <div class="collage-cell tall" id="cell-a">
+      <img id="img-a" src="" alt="" draggable="false">
+      <div class="cell-ov" id="ov-a" onclick="selectSlotFromCell('a')">
+        <button class="cell-btn">↔ Flip</button>
+        <button class="cell-btn">✎ ערוך</button>
+      </div>
+    </div>
+    <div class="collage-cell" id="cell-b">
+      <img id="img-b" src="" alt="" draggable="false">
+      <div class="cell-ov" id="ov-b" onclick="selectSlotFromCell('b')">
+        <button class="cell-btn">✎ ערוך</button>
+      </div>
+    </div>
+    <div class="collage-cell" id="cell-c">
+      <img id="img-c" src="" alt="" draggable="false">
+      <div class="cell-ov" id="ov-c" onclick="selectSlotFromCell('c')">
+        <button class="cell-btn">✎ ערוך</button>
+      </div>
+    </div>
+    <div class="collage-overlay" id="coll-overlay"></div>
+    <div class="title-on-image">
+      <h1 id="b-title" contenteditable="true" spellcheck="false" style="cursor:text;">תיאטרון הגן של סיון</h1>
+    </div>
+  </div>
+
+  <div class="b-body">
+    <p class="tagline" id="b-tagline" contenteditable="true" spellcheck="false">🎭 סיפורים שנוגעים בנפש · בובות · מוזיקה · תנועה · דמיון 🎭</p>
+    <div class="divider" id="d1"></div>
+    <p class="intro" id="b-intro1" contenteditable="true" spellcheck="false">שמי <strong>סיון עטיה</strong> — שחקנית ויוצרת עם ניסיון של <strong>למעלה מ־15 שנה</strong> בעבודה עם ילדים בגיל הרך ובחינוך המיוחד (גילאי שנה וחצי עד כיתה א').</p>
+    <p class="intro" id="b-intro2" contenteditable="true" spellcheck="false" style="margin-top:8px;">במשך השנים פיתחתי את <strong>תיאטרון הגן של סיון</strong> — מרחב תיאטרלי-חווייתי המשלב סיפורים, בובות, מוזיקה, תנועה ודמיון. אני רואה בתיאטרון <strong>צוהר לעולמו הרגשי של הילד</strong> — מקום לדבר אל הנפש.</p>
+    <div class="divider" id="d2"></div>
+    <p class="services-title" id="b-stitle" contenteditable="true" spellcheck="false">🌟 לבחירתכם/ן 🌟</p>
+    <div class="services" id="b-services">
+      <div class="service" data-sid="0">
+        <div class="service-name" contenteditable="true" spellcheck="false">🎪 חוג שנתי שבועי</div>
+        <div class="service-desc" contenteditable="true" spellcheck="false">דרך משחק, סיפור והמחזה — הילדים מבטאים את עצמם, מחזקים ביטחון עצמי, מפתחים יצירתיות וכישורים חברתיים — באווירה חמה, מצחיקה ומלאת דמיון.</div>
+      </div>
+      <div class="service" data-sid="1">
+        <div class="service-name" contenteditable="true" spellcheck="false">🎬 הצגות לקייטנות</div>
+        <div class="service-desc" contenteditable="true" spellcheck="false">מבחר גדול של הצגות בסגנונות שונים — לכל גיל ואוכלוסייה.</div>
+      </div>
+      <div class="service" data-sid="2">
+        <div class="service-name" contenteditable="true" spellcheck="false">📖 שעות סיפור</div>
+        <div class="service-desc" contenteditable="true" spellcheck="false">תיאטרון סיפור בשעות אחה"צ — חוויה קסומה ומרתקת לילדים.</div>
+      </div>
+    </div>
+    <div class="cta">
+      <p class="cta-text" id="b-cta" contenteditable="true" spellcheck="false">מוזמנות/ים ליצור קשר — נשמח להתאים את ההצגה המושלמת לגן שלכם/ן 🌸</p>
+      <div class="contact-line"><span>📞</span><a id="b-phone" href="tel:0508224309" contenteditable="true" spellcheck="false">050-8224309</a></div>
+      <div class="contact-line"><span>📧</span><a id="b-email" href="mailto:sivana.theater@gmail.com" contenteditable="true" spellcheck="false">sivana.theater@gmail.com</a></div>
+    </div>
+    <p class="footer-note" id="b-footer" contenteditable="true" spellcheck="false">✨ כי כל ילד ראוי לקסם של תיאטרון אמיתי ✨</p>
+  </div>
+
+</div>
+</div>
+</div><!-- /editor-body -->
+
+<script>
+/* ════════ DATA ════════ */
+const ALL_IMAGES = [
+  "images/img1.jpg",
+  "images/img2.jpg",
+  "images/img3.jpg",
+  "images/img4.jpg",
+  "images/img5.jpg",
+  "images/img6.jpg",
+  "images/img7.jpg",
+  "images/img8.jpg",
+  "images/img9.jpg",
+  "images/img10.jpg",
+  "images/img11.jpg"
+];
+
+const THEMES = [
+  {name:'בורדו',swatch:'linear-gradient(135deg,#8b1a4a,#c45080)',accent:'#8b1a4a',accent2:'#c45080',
+   vars:{'--bg':'#fff9f0','--accent':'#8b1a4a','--accent2':'#c45080','--text':'#3a2040','--text-light':'#6b3a6b','--card-bg':'#fff0f5','--card-border':'#c45080','--cta-from':'#8b1a4a','--cta-to':'#c45080','--grad-end':'#fff9f0','--div1':'#e8a0c0','--div2':'#c45080'}},
+  {name:'ים תיכון',swatch:'linear-gradient(135deg,#0f4c75,#1b9aaa)',accent:'#0f4c75',accent2:'#1b9aaa',
+   vars:{'--bg':'#f0f8ff','--accent':'#0f4c75','--accent2':'#1b9aaa','--text':'#0d2c3e','--text-light':'#2a6a7a','--card-bg':'#e6f4f8','--card-border':'#1b9aaa','--cta-from':'#0f4c75','--cta-to':'#1b9aaa','--grad-end':'#f0f8ff','--div1':'#7dd4e0','--div2':'#1b9aaa'}},
+  {name:'יער',swatch:'linear-gradient(135deg,#1a4a2e,#4a9060)',accent:'#1a4a2e',accent2:'#4a9060',
+   vars:{'--bg':'#f2faf4','--accent':'#1a4a2e','--accent2':'#4a9060','--text':'#1a2e20','--text-light':'#3a6a4a','--card-bg':'#e4f5ea','--card-border':'#4a9060','--cta-from':'#1a4a2e','--cta-to':'#4a9060','--grad-end':'#f2faf4','--div1':'#90d0a8','--div2':'#4a9060'}},
+  {name:'שקיעה',swatch:'linear-gradient(135deg,#b5451b,#e8943a)',accent:'#b5451b',accent2:'#e8943a',
+   vars:{'--bg':'#fff8f2','--accent':'#b5451b','--accent2':'#e8943a','--text':'#3e1a08','--text-light':'#8a4a20','--card-bg':'#fef0e4','--card-border':'#e8943a','--cta-from':'#b5451b','--cta-to':'#e8943a','--grad-end':'#fff8f2','--div1':'#f0c090','--div2':'#e8943a'}},
+  {name:'לילה',swatch:'linear-gradient(135deg,#1a1a4a,#5a4a9a)',accent:'#2a1a7a',accent2:'#6a5abf',
+   vars:{'--bg':'#f4f2ff','--accent':'#2a1a7a','--accent2':'#6a5abf','--text':'#1a1a3a','--text-light':'#4a3a7a','--card-bg':'#ece8ff','--card-border':'#6a5abf','--cta-from':'#2a1a7a','--cta-to':'#6a5abf','--grad-end':'#f4f2ff','--div1':'#b0a0e0','--div2':'#6a5abf'}}
+];
+
+/* ════════ STATE ════════ */
+let activeSlot = 'a';
+let activeThemeIdx = 0;
+const slotState = {
+  a:{imgIdx:0,zoom:100,x:50,y:10,flipH:false,flipV:false},
+  b:{imgIdx:1,zoom:100,x:50,y:20,flipH:false,flipV:false},
+  c:{imgIdx:2,zoom:150,x:50,y:65,flipH:false,flipV:false}
+};
+let recentColors = [];
+let lastRange = null;
+let tbPinned = false;
+let serviceCounter = 3;
+
+
+/* ════════ UNDO SYSTEM ════════ */
+const UNDO_STACK = [];
+const UNDO_LIMIT = 20;
+let undoPointer = -1;
+let undoPaused = false;
+
+function saveUndo(label) {
+  if(undoPaused) return;
+  // Serialize current state
+  const snapshot = {
+    label,
+    slotState: JSON.parse(JSON.stringify(slotState)),
+    brochureHTML: document.getElementById('brochure').querySelector('.b-body').innerHTML,
+    titleHTML: document.getElementById('b-title').innerHTML,
+  };
+  // Remove any redo states ahead
+  if(undoPointer < UNDO_STACK.length-1) UNDO_STACK.splice(undoPointer+1);
+  UNDO_STACK.push(snapshot);
+  if(UNDO_STACK.length > UNDO_LIMIT) UNDO_STACK.shift();
+  undoPointer = UNDO_STACK.length-1;
+  updateUndoBtn();
+}
+
+function undo() {
+  if(undoPointer <= 0) return;
+  undoPointer--;
+  restoreSnapshot(UNDO_STACK[undoPointer]);
+}
+
+function redo() {
+  if(undoPointer >= UNDO_STACK.length-1) return;
+  undoPointer++;
+  restoreSnapshot(UNDO_STACK[undoPointer]);
+}
+
+function restoreSnapshot(snap) {
+  undoPaused = true;
+  Object.assign(slotState, JSON.parse(JSON.stringify(snap.slotState)));
+  document.getElementById('b-title').innerHTML = snap.titleHTML;
+  document.getElementById('brochure').querySelector('.b-body').innerHTML = snap.brochureHTML;
+  ['a','b','c'].forEach(applySlotStyle);
+  loadSlotControls();
+  buildServicesEditor();
+  undoPaused = false;
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const u=document.getElementById('undo-btn');
+  const r=document.getElementById('redo-btn');
+  if(u) { u.disabled=undoPointer<=0; u.style.opacity=undoPointer<=0?'0.4':'1'; }
+  if(r) { r.disabled=undoPointer>=UNDO_STACK.length-1; r.style.opacity=undoPointer>=UNDO_STACK.length-1?'0.4':'1'; }
+}
+
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){ e.preventDefault(); undo(); }
+  if((e.ctrlKey||e.metaKey) && (e.key==='y' || (e.key==='z'&&e.shiftKey))){ e.preventDefault(); redo(); }
+});
+
+/* ════════ INIT ════════ */
+function init() {
+  buildThemeGrid();
+  buildImgPicker();
+  applyTheme(0);
+  ['a','b','c'].forEach(applySlotStyle);
+  buildServicesEditor();
+  initDrag();
+  // Fix title not editable - remove z-index overlap issue
+  document.getElementById('b-title').addEventListener('click', e => e.stopPropagation());
+}
+
+/* ════════ THEMES ════════ */
+function buildThemeGrid() {
+  const g = document.getElementById('themeGrid');
+  THEMES.forEach((t,i) => {
+    const c = document.createElement('div');
+    c.className='theme-card'+(i===0?' selected':'');
+    c.innerHTML=`<div class="theme-swatch" style="background:${t.swatch}"></div><div class="theme-name">${t.name}</div>`;
+    c.onclick=()=>{
+      document.querySelectorAll('.theme-card').forEach(x=>x.classList.remove('selected'));
+      c.classList.add('selected'); saveUndo('שינוי תבנית'); applyTheme(i);
+    };
+    g.appendChild(c);
+  });
+}
+function applyTheme(i) {
+  activeThemeIdx = i;
+  const b=document.getElementById('brochure');
+  Object.entries(THEMES[i].vars).forEach(([k,v])=>b.style.setProperty(k,v));
+  document.getElementById('coll-overlay').style.background=`linear-gradient(to bottom,transparent 60%,${THEMES[i].vars['--grad-end']} 88%)`;
+  buildColorPalette();
+}
+
+/* ════════ IMAGES ════════ */
+function buildImgPicker() {
+  const g=document.getElementById('img-picker'); g.innerHTML='';
+  ALL_IMAGES.forEach((src,i)=>{
+    const d=document.createElement('div');
+    d.className='img-thumb'+(slotState[activeSlot].imgIdx===i?' selected':'');
+    d.innerHTML=`<img src="${src}" loading="lazy"><span class="tn">${i+1}</span>`;
+    d.onclick=()=>{
+      document.querySelectorAll('#img-picker .img-thumb').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      saveUndo('החלפת תמונה');
+      slotState[activeSlot].imgIdx=i;
+      applySlotStyle(activeSlot);
+    };
+    g.appendChild(d);
+  });
+}
+
+function uploadImage(inp) {
+  const file=inp.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    ALL_IMAGES.push(e.target.result);
+    slotState[activeSlot].imgIdx=ALL_IMAGES.length-1;
+    buildImgPicker();
+    applySlotStyle(activeSlot);
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+}
+
+function flipImg(dir) {
+  saveUndo('פליפ תמונה');
+  const st=slotState[activeSlot];
+  if(dir==='h') st.flipH=!st.flipH;
+  else st.flipV=!st.flipV;
+  applySlotStyle(activeSlot);
+}
+function resetFlip() {
+  saveUndo('איפוס פליפ');
+  const st=slotState[activeSlot];
+  st.flipH=false; st.flipV=false;
+  applySlotStyle(activeSlot);
+}
+
+function selectSlot(s,el) {
+  activeSlot=s;
+  document.querySelectorAll('.slot-tab').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  loadSlotControls(); buildImgPicker(); highlightActiveCell();
+}
+function selectSlotFromCell(s) {
+  activeSlot=s;
+  showPanel('images',null);
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===1));
+  document.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('active',['a','b','c'][i]===s));
+  loadSlotControls(); buildImgPicker(); highlightActiveCell();
+}
+function highlightActiveCell() {
+  ['a','b','c'].forEach(s=>document.getElementById('ov-'+s).classList.toggle('active-cell',s===activeSlot));
+}
+function loadSlotControls() {
+  const st=slotState[activeSlot];
+  document.getElementById('ctrl-zoom').value=st.zoom;
+  document.getElementById('ctrl-x').value=st.x;
+  document.getElementById('ctrl-y').value=st.y;
+  document.getElementById('val-zoom').textContent=st.zoom+'%';
+  document.getElementById('val-x').textContent=st.x+'%';
+  document.getElementById('val-y').textContent=st.y+'%';
+}
+function applyImgCtrl() {
+  const st=slotState[activeSlot];
+  st.zoom=+document.getElementById('ctrl-zoom').value;
+  st.x=+document.getElementById('ctrl-x').value;
+  st.y=+document.getElementById('ctrl-y').value;
+  document.getElementById('val-zoom').textContent=st.zoom+'%';
+  document.getElementById('val-x').textContent=st.x+'%';
+  document.getElementById('val-y').textContent=st.y+'%';
+  applySlotStyle(activeSlot);
+}
+function applySlotStyle(s) {
+  const st=slotState[s];
+  const img=document.getElementById('img-'+s);
+  img.src=ALL_IMAGES[st.imgIdx]||'';
+  // Use object-position for pan, scale via wrapper transform for zoom
+  // Flip is applied via scaleX/scaleY on the cell wrapper to avoid white-space offset
+  const cell=document.getElementById('cell-'+s);
+  const sc=st.zoom/100;
+  img.style.transform=`scale(${sc})`;
+  img.style.transformOrigin=`${st.x}% ${st.y}%`;
+  img.style.objectPosition=`${st.x}% ${st.y}%`;
+  // flip on the cell itself (doesn't affect layout box)
+  const fx=st.flipH?-1:1, fy=st.flipV?-1:1;
+  cell.style.transform=`scale(${fx},${fy})`;
+  // keep overlay buttons readable even when flipped
+  const ov=document.getElementById('ov-'+s);
+  if(ov) ov.style.transform=`scale(${fx},${fy})`;
+}
+
+/* ════════ DRAG PAN ════════ */
+function initDrag() {
+  ['a','b','c'].forEach(s=>{
+    const cell=document.getElementById('cell-'+s);
+    let drag=false,sx,sy,spx,spy;
+    cell.addEventListener('mousedown',e=>{
+      if(e.target.tagName==='BUTTON') return;
+      drag=true; sx=e.clientX; sy=e.clientY;
+      spx=slotState[s].x; spy=slotState[s].y; e.preventDefault();
+    });
+    window.addEventListener('mousemove',e=>{
+      if(!drag||activeSlot!==s) return;
+      slotState[s].x=Math.max(0,Math.min(100,spx-(e.clientX-sx)/2));
+      slotState[s].y=Math.max(0,Math.min(100,spy-(e.clientY-sy)/2));
+      applySlotStyle(s); loadSlotControls();
+    });
+    window.addEventListener('mouseup',()=>{if(drag)saveUndo('הזזת תמונה');drag=false;});
+    cell.addEventListener('touchstart',e=>{
+      if(e.target.tagName==='BUTTON') return;
+      const t=e.touches[0]; drag=true; sx=t.clientX; sy=t.clientY;
+      spx=slotState[s].x; spy=slotState[s].y;
+    },{passive:true});
+    cell.addEventListener('touchmove',e=>{
+      if(!drag) return;
+      const t=e.touches[0];
+      slotState[s].x=Math.max(0,Math.min(100,spx-(t.clientX-sx)/2));
+      slotState[s].y=Math.max(0,Math.min(100,spy-(t.clientY-sy)/2));
+      applySlotStyle(s); loadSlotControls();
+    },{passive:true});
+    cell.addEventListener('touchend',()=>{drag=false;});
+  });
+}
+
+/* ════════ SERVICES EDITOR ════════ */
+function buildServicesEditor() {
+  const cont=document.getElementById('services-editor'); cont.innerHTML='';
+  const services=document.querySelectorAll('#b-services .service');
+  services.forEach((srv,i)=>{
+    const name=srv.querySelector('.service-name').textContent;
+    const desc=srv.querySelector('.service-desc').textContent;
+    const box=document.createElement('div');
+    box.className='service-editor'; box.dataset.sid=i;
+    box.innerHTML=`
+      <button class="se-del" onclick="removeService(${i})" title="מחק">✕</button>
+      <label class="fl">שם</label>
+      <input class="fi" value="${name}" oninput="syncServiceName(${i},this.value)" style="margin-bottom:5px;">
+      <label class="fl">תיאור</label>
+      <textarea class="ft" oninput="syncServiceDesc(${i},this.value)">${desc}</textarea>`;
+    cont.appendChild(box);
+  });
+}
+function syncServiceName(i,val) {
+  const el=document.querySelector(`#b-services .service[data-sid="${i}"] .service-name`);
+  if(el) el.textContent=val;
+}
+function syncServiceDesc(i,val) {
+  const el=document.querySelector(`#b-services .service[data-sid="${i}"] .service-desc`);
+  if(el) el.textContent=val;
+}
+function addService() {
+  saveUndo('הוספת שירות');
+  const sid=serviceCounter++;
+  const srv=document.getElementById('b-services');
+  const div=document.createElement('div');
+  div.className='service'; div.dataset.sid=sid;
+  div.innerHTML=`<div class="service-name" contenteditable="true" spellcheck="false">✨ שירות חדש</div><div class="service-desc" contenteditable="true" spellcheck="false">תיאור השירות...</div>`;
+  srv.appendChild(div);
+  const box=document.createElement('div');
+  box.className='service-editor'; box.dataset.sid=sid;
+  box.innerHTML=`
+    <button class="se-del" onclick="removeService(${sid})" title="מחק">✕</button>
+    <label class="fl">שם</label>
+    <input class="fi" value="✨ שירות חדש" oninput="syncServiceName(${sid},this.value)" style="margin-bottom:5px;">
+    <label class="fl">תיאור</label>
+    <textarea class="ft" oninput="syncServiceDesc(${sid},this.value)">תיאור השירות...</textarea>`;
+  document.getElementById('services-editor').appendChild(box);
+}
+function removeService(i) {
+  saveUndo('מחיקת שירות');
+  const brSrv=document.querySelector(`#b-services .service[data-sid="${i}"]`);
+  const edSrv=document.querySelector(`#services-editor .service-editor[data-sid="${i}"]`);
+  if(brSrv) brSrv.remove();
+  if(edSrv) edSrv.remove();
+}
+
+/* ════════ DIVIDERS ════════ */
+function toggleDivider(id,show) {
+  const el=document.getElementById(id);
+  if(el) el.style.display=show?'':'none';
+}
+
+/* ════════ SYNC HELPERS ════════ */
+function syncHtml(id,val) { document.getElementById(id).textContent=val; }
+function syncPhone(v) { const a=document.getElementById('b-phone'); a.textContent=v; a.href='tel:'+v.replace(/-/g,''); }
+function syncEmail(v) { const a=document.getElementById('b-email'); a.textContent=v; a.href='mailto:'+v; }
+
+/* ════════ RICH TEXT ════════ */
+const toolbar=document.getElementById('rt-toolbar');
+
+document.addEventListener('selectionchange',()=>{
+  const sel=window.getSelection();
+  if(!sel) return;
+  const node=sel.anchorNode;
+  if(!node) return;
+  const ed=(node.nodeType===3?node.parentElement:node).closest && (node.nodeType===3?node.parentElement:node).closest('[contenteditable]');
+
+  // Always update size/weight indicator if cursor is inside editable
+  if(ed) updateSizeIndicator(node);
+
+  // Show/hide toolbar only for non-collapsed selections
+  if(sel.isCollapsed||!sel.toString().trim()){
+    if(!tbPinned) hideToolbar();
+    return;
+  }
+  if(!ed){hideToolbar();return;}
+  lastRange=sel.getRangeAt(0);
+  positionToolbar(lastRange);
+  updateToolbarState();
+});
+
+function positionToolbar(range) {
+  // toolbar is fixed to bottom — nothing to position
+  toolbar.classList.add('visible');
+  document.body.classList.add('rt-open');
+}
+function hideToolbar(){toolbar.classList.remove('visible');document.body.classList.remove('rt-open');tbPinned=false;}
+toolbar.addEventListener('mousedown',e=>{tbPinned=true;e.preventDefault();});
+function updateSizeIndicator(anchorNode){
+  const el = anchorNode ? (anchorNode.nodeType===3 ? anchorNode.parentElement : anchorNode) : null;
+  if(!el || !el.closest) return;
+  const editable = el.closest('[contenteditable]');
+  if(!editable) return;
+  const fs = parseFloat(window.getComputedStyle(el).fontSize);
+  if(fs){
+    const rounded = Math.round(fs);
+    const sizeBtn = document.getElementById('size-display');
+    if(sizeBtn) sizeBtn.textContent = rounded+'px ▾';
+    const inp = document.getElementById('size-input');
+    if(inp && document.activeElement !== inp) inp.value = rounded;
+    document.querySelectorAll('.size-preset').forEach(b => {
+      b.classList.toggle('active', b.dataset.px == rounded);
+    });
+  }
+  const fw = window.getComputedStyle(el).fontWeight;
+  const wBtn = document.getElementById('weight-display');
+  if(wBtn) wBtn.textContent = fw+' ▾';
+  document.querySelectorAll('.weight-preset').forEach(b => {
+    b.classList.toggle('active', b.dataset.w === fw || b.dataset.w === String(Math.round(parseFloat(fw))));
+  });
+}
+
+function updateToolbarState(){
+  document.getElementById('rt-bold').classList.toggle('on', document.queryCommandState('bold'));
+  document.getElementById('rt-italic').classList.toggle('on', document.queryCommandState('italic'));
+  document.getElementById('rt-underline').classList.toggle('on', document.queryCommandState('underline'));
+  const sel = window.getSelection();
+  if(sel && sel.anchorNode) updateSizeIndicator(sel.anchorNode);
+}
+function restoreSel(){if(lastRange){const s=window.getSelection();s.removeAllRanges();s.addRange(lastRange);}}
+function wrapSelectionInSpan(prop, val){
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if(range.collapsed) return;
+
+  // ── Step 1: Flatten existing spans with same prop inside selection ──
+  const ancestor = range.commonAncestorContainer;
+  const root = ancestor.nodeType === Node.TEXT_NODE ? ancestor.parentElement : ancestor;
+  // Find all spans with this prop inside the editable
+  const editable = root.closest ? root.closest('[contenteditable]') : root;
+  if(editable){
+    editable.querySelectorAll('span[style]').forEach(s => {
+      if(s.style[prop] && range.intersectsNode(s)){
+        const parent = s.parentNode;
+        while(s.firstChild) parent.insertBefore(s.firstChild, s);
+        s.remove();
+      }
+    });
+  }
+
+  // Re-get range after DOM mutation
+  const sel2 = window.getSelection();
+  if(!sel2 || !sel2.rangeCount) return;
+  const range2 = sel2.getRangeAt(0);
+
+  // ── Step 2: Collect text nodes in range ──
+  const nodes = [];
+  const root2 = range2.commonAncestorContainer;
+
+  if(root2.nodeType === Node.TEXT_NODE){
+    nodes.push(root2);
+  } else {
+    const tw = document.createTreeWalker(root2, NodeFilter.SHOW_TEXT);
+    let n;
+    while(n = tw.nextNode()){
+      if(range2.intersectsNode(n)) nodes.push(n);
+    }
+  }
+
+  if(!nodes.length) return;
+
+  // ── Step 3: Wrap each text node slice ──
+  nodes.forEach(tn => {
+    const start = (tn === range2.startContainer) ? range2.startOffset : 0;
+    const end   = (tn === range2.endContainer)   ? range2.endOffset   : tn.length;
+    if(start >= end) return;
+    if(end < tn.length) tn.splitText(end);
+    const target = (start > 0) ? tn.splitText(start) : tn;
+    const span = document.createElement('span');
+    span.style[prop] = val;
+    if(prop === 'font-size'){
+      const n = parseFloat(val);
+      span.style.lineHeight = n > 20 ? '1.2' : n > 14 ? '1.4' : '1.5';
+    }
+    target.parentNode.insertBefore(span, target);
+    span.appendChild(target);
+  });
+
+  // ── Step 4: Restore selection ──
+  try {
+    const r2 = document.createRange();
+    const firstParent = nodes[0].parentNode;
+    const lastParent  = nodes[nodes.length-1].parentNode;
+    r2.setStartBefore(firstParent);
+    r2.setEndAfter(lastParent);
+    sel.removeAllRanges();
+    sel.addRange(r2);
+    lastRange = r2;
+  } catch(e){}
+}
+
+
+/* ── MOUSEDOWN-SAFE event handlers (prevent blur before action) ── */
+function evt_rtCmd(e, cmd){ e.preventDefault(); saveUndo('עיצוב טקסט'); restoreSel(); document.execCommand(cmd,false,null); updateToolbarState(); }
+function evt_rtSize(e, val){
+  e.preventDefault();
+  saveUndo('גודל פונט');
+  restoreSel();
+  wrapSelectionInSpan('font-size', val);
+  // update input display
+  const px = parseFloat(val);
+  const inp = document.getElementById('size-input');
+  if(inp) inp.value = Math.round(px);
+  const sizeBtn = document.getElementById('size-display');
+  if(sizeBtn) sizeBtn.textContent = Math.round(px)+'px ▾';
+  // mark active preset
+  document.querySelectorAll('.size-preset').forEach(b => {
+    b.classList.toggle('active', b.dataset.px == Math.round(px));
+  });
+  closePops();
+}
+function evt_rtWeight(e, val){ e.preventDefault(); saveUndo('משקל פונט'); restoreSel(); wrapSelectionInSpan('font-weight', val); updateWeightDisplay(val); closePops(); }
+function evt_applyExactSize(e){ e.preventDefault(); const px=document.getElementById('size-input').value; if(px){ saveUndo('גודל פונט'); restoreSel(); wrapSelectionInSpan('font-size', px+'px'); } closePops(); }
+
+function liveSize(val){
+  const px = parseInt(val);
+  if(!px || px < 6 || px > 200) return;
+  clearTimeout(window._liveSizeTimer);
+  window._liveSizeTimer = setTimeout(()=>{
+    restoreSel();
+    if(lastRange && !lastRange.collapsed){
+      wrapSelectionInSpan('font-size', px+'px');
+      const sizeBtn = document.getElementById('size-display');
+      if(sizeBtn) sizeBtn.textContent = px+'px ▾';
+      document.querySelectorAll('.size-preset').forEach(b => {
+        b.classList.toggle('active', b.dataset.px == px);
+      });
+      saveUndo('גודל פונט');
+    }
+  }, 350);
+}
+
+function applyExactSize(){ const px=document.getElementById('size-input').value; if(px){ saveUndo('גודל פונט'); restoreSel(); wrapSelectionInSpan('font-size', px+'px'); } closePops(); }
+
+function evt_changeSize(e, dir){
+  e.preventDefault();
+  saveUndo('גודל פונט');
+  restoreSel();
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return;
+  const node = sel.anchorNode;
+  const el = node ? (node.nodeType===3 ? node.parentElement : node) : null;
+  const cur = el ? parseFloat(window.getComputedStyle(el).fontSize) || 16 : 16;
+  const steps = [10,12,14,16,18,20,24,28,32,40,48,64];
+  let idx = steps.findIndex(s => s > cur - 0.5);
+  if(idx === -1) idx = steps.length - 1;
+  else if(dir === 1 && steps[idx] <= cur) idx++;
+  else if(dir === -1) idx = Math.max(0, idx - 1);
+  idx = Math.max(0, Math.min(steps.length-1, idx));
+  const newPx = steps[idx];
+  wrapSelectionInSpan('font-size', newPx+'px');
+  const sizeBtn = document.getElementById('size-display');
+  if(sizeBtn) sizeBtn.textContent = newPx+'px ▾';
+  const inp = document.getElementById('size-input');
+  if(inp) inp.value = newPx;
+  document.querySelectorAll('.size-preset').forEach(b => {
+    b.classList.toggle('active', b.dataset.px == newPx);
+  });
+}
+
+function evt_toggleSizePop(e){
+  e.preventDefault();
+  const pop=document.getElementById('size-pop');
+  const btn=document.getElementById('size-display');
+  if(pop.style.display==='none'||!pop.style.display){
+    closeWeightPop();
+    const r=btn.getBoundingClientRect();
+    pop.style.left=r.left+'px'; pop.style.bottom=(window.innerHeight-r.top+4)+'px'; pop.style.top='auto';
+    pop.style.display='block';
+  } else { pop.style.display='none'; }
+}
+
+function evt_toggleWeightPop(e){
+  e.preventDefault();
+  const pop=document.getElementById('weight-pop');
+  const btn=document.getElementById('weight-display');
+  if(pop.style.display==='none'||!pop.style.display){
+    closeSizePop();
+    const r=btn.getBoundingClientRect();
+    pop.style.left=r.left+'px'; pop.style.bottom=(window.innerHeight-r.top+4)+'px'; pop.style.top='auto';
+    pop.style.display='block';
+    checkWeightAvailability();
+  } else { pop.style.display='none'; }
+}
+
+function closeSizePop(){ const p=document.getElementById('size-pop'); if(p) p.style.display='none'; }
+function closeWeightPop(){ const p=document.getElementById('weight-pop'); if(p) p.style.display='none'; }
+function closePops(){ closeSizePop(); closeWeightPop(); }
+
+function updateWeightDisplay(v){
+  const btn=document.getElementById('weight-display');
+  if(btn){ btn.textContent=v+' ▾'; btn.style.fontWeight=v; }
+}
+
+function checkWeightAvailability(){
+  // Test which weights are actually available for Rubik
+  const available=['300','400','500','700','900'];
+  document.querySelectorAll('.weight-preset').forEach(btn=>{
+    const w=btn.dataset.w;
+    btn.disabled=!available.includes(w);
+  });
+}
+
+function rtCmd(cmd){
+  if(!undoPaused) saveUndo('עיצוב טקסט');restoreSel();document.execCommand(cmd,false,null);updateToolbarState();tbPinned=false;}
+function rtSize(v){
+  if(!v) return;
+  restoreSel();
+  const sizeMap={'1':'0.7em','2':'0.85em','3':'1em','4':'1.2em','5':'1.5em','6':'1.8em','7':'2.2em'};
+  wrapSelectionInSpan('font-size', sizeMap[v] || v+'em');
+  tbPinned=false;
+}
+function rtWeight(v){
+  if(!undoPaused) saveUndo('עיצוב טקסט');
+  if(!v) return;
+  restoreSel();
+  wrapSelectionInSpan('font-weight', v);
+  tbPinned=false;
+}
+function rtColor(v){
+  restoreSel();
+  document.getElementById('tc-preview').style.background=v;
+  const sw=document.getElementById('tc-swatch'); if(sw) sw.style.background=v;
+  document.execCommand('foreColor',false,v);
+  addRecentColor(v); tbPinned=false;
+}
+function rtBg(v){
+  restoreSel();
+  document.getElementById('bg-preview').style.background=v;
+  document.execCommand('hiliteColor',false,v);
+  addRecentColor(v); tbPinned=false;
+}
+function rtClear(){
+  restoreSel();
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount) return;
+  const range=sel.getRangeAt(0);
+  if(range.collapsed) return;
+  saveUndo('ניקוי עיצוב');
+  const frag=range.extractContents();
+  const text=frag.textContent;
+  const textNode=document.createTextNode(text);
+  range.insertNode(textNode);
+  // reselect
+  const r2=document.createRange(); r2.selectNodeContents(textNode);
+  sel.removeAllRanges(); sel.addRange(r2);
+  tbPinned=false;
+}
+
+/* eyedropper */
+function tryEyedropper(){
+  if(!window.EyeDropper){alert('הדפדפן שלך לא תומך ב-Eyedropper. נסה Chrome 95+');return;}
+  const ed=new EyeDropper();
+  ed.open().then(r=>{
+    rtColor(r.sRGBHex);
+    document.getElementById('rt-tc').value=r.sRGBHex;
+    document.getElementById('tc-preview').style.background=r.sRGBHex;
+  }).catch(()=>{});
+}
+
+/* ════════ COLOR PALETTE ════════ */
+function buildColorPalette(){
+  const row=document.getElementById('color-slots-row');
+  if(!row) return;
+  row.innerHTML='';
+  const t=THEMES[activeThemeIdx];
+  const suggested=[t.accent,t.accent2,t.vars['--text'],t.vars['--text-light'],t.vars['--div2']];
+
+  // label
+  const lbl1=document.createElement('div'); lbl1.className='slot-label-small'; lbl1.textContent='הצעות תבנית:'; row.appendChild(lbl1);
+
+  // 5 suggested swatches
+  suggested.forEach(c=>{
+    const sw=document.createElement('div');
+    sw.className='color-swatch'; sw.style.background=c; sw.title=c;
+    sw.onclick=()=>{ document.getElementById('rt-tc').value=c; rtColor(c); document.getElementById('tc-swatch').style.background=c; };
+    row.appendChild(sw);
+  });
+
+  // label for history
+  const lbl2=document.createElement('div'); lbl2.className='slot-label-small'; lbl2.textContent='היסטוריה (5 אחרונים):'; row.appendChild(lbl2);
+
+  // 5 history slots (always show 5, empty if not used yet)
+  const hist=recentColors.slice(-5);
+  for(let i=0;i<5;i++){
+    const sw=document.createElement('div');
+    if(hist[i]){
+      sw.className='color-swatch'; sw.style.background=hist[i]; sw.title=hist[i];
+      sw.onclick=()=>{ document.getElementById('rt-tc').value=hist[i]; rtColor(hist[i]); document.getElementById('tc-swatch').style.background=hist[i]; };
+    } else {
+      sw.className='color-swatch empty'; sw.title='ריק';
+    }
+    row.appendChild(sw);
+  }
+}
+
+function toggleColorPop(){
+  const pop=document.getElementById('color-pop');
+  const visible=pop.style.display!=='none';
+  pop.style.display=visible?'none':'block';
+  if(!visible) buildColorPalette();
+}
+
+// Close all pops on outside click
+document.addEventListener('mousedown',e=>{
+  const colorPop=document.getElementById('color-pop');
+  if(colorPop&&colorPop.style.display!=='none'){
+    if(!colorPop.contains(e.target)&&e.target.id!=='tc-swatch') colorPop.style.display='none';
+  }
+  const sizePop=document.getElementById('size-pop');
+  if(sizePop&&sizePop.style.display!=='none'){
+    if(!sizePop.contains(e.target)&&!e.target.closest('#size-display')&&e.target.id!=='size-display') closeSizePop();
+  }
+  const weightPop=document.getElementById('weight-pop');
+  if(weightPop&&weightPop.style.display!=='none'){
+    if(!weightPop.contains(e.target)&&!e.target.closest('#weight-display')&&e.target.id!=='weight-display') closeWeightPop();
+  }
+  const fmtMenu=document.getElementById('fmt-menu');
+  if(fmtMenu&&fmtMenu.style.display!=='none'){
+    if(!fmtMenu.contains(e.target)&&!e.target.closest('#fmt-btn')) fmtMenu.style.display='none';
+  }
+});
+function addRecentColor(c){
+  if(!recentColors.includes(c)) recentColors.push(c);
+  if(recentColors.length>5) recentColors.shift();
+  buildColorPalette();
+}
+
+/* ════════ DOWNLOAD PNG ════════ */
+async function downloadPNG(){
+  const btn=document.getElementById('dl-btn');
+  btn.classList.add('loading'); btn.textContent='⏳ מייצר...';
+
+  // hide editor overlays temporarily
+  document.querySelectorAll('.cell-ov').forEach(el=>el.style.display='none');
+  document.querySelectorAll('[contenteditable]').forEach(el=>el.style.outline='none');
+  const rtTb = document.getElementById('rt-toolbar');
+  const rtWasVisible = rtTb && rtTb.classList.contains('visible');
+  if(rtTb) rtTb.classList.remove('visible');
+  closePops();
+  const fmtM = document.getElementById('fmt-menu'); if(fmtM) fmtM.style.display='none';
+  const colP = document.getElementById('color-pop'); if(colP) colP.style.display='none';
+
+  try {
+    const brochure=document.getElementById('brochure');
+    const scale = FORMAT_SCALE[currentFormat] || 2.5;
+    const canvas=await html2canvas(brochure,{
+      scale:scale,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:null,
+      logging:false
+    });
+    const link=document.createElement('a');
+    link.download='sivan-theater-brochure.png';
+    link.href=canvas.toDataURL('image/png',1.0);
+    link.click();
+  } catch(e){
+    alert('שגיאה בייצוא: '+e.message);
+  } finally {
+    document.querySelectorAll('.cell-ov').forEach(el=>el.style.display='');
+    if(rtTb && rtWasVisible) rtTb.classList.add('visible');
+    btn.classList.remove('loading');
+    btn.textContent='⬇ הורד PNG';
+  }
+}
+
+/* ════════ TABS ════════ */
+function showPanel(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+
+/* ── DEFAULT STYLES per element ── */
+const DEFAULT_STYLES = {
+  'b-title':    {fontSize:'clamp(1.5rem,5.5vw,2.2rem)', fontWeight:'900', color:'var(--accent)', lineHeight:'1.1'},
+  'b-tagline':  {fontSize:'clamp(.82rem,2.8vw,.95rem)', fontWeight:'700', color:'var(--text-light)', lineHeight:'1.5'},
+  'b-intro1':   {fontSize:'clamp(.85rem,3vw,.92rem)',   fontWeight:'400', color:'var(--text)',       lineHeight:'1.75'},
+  'b-intro2':   {fontSize:'clamp(.85rem,3vw,.92rem)',   fontWeight:'400', color:'var(--text)',       lineHeight:'1.75'},
+  'service-name': {fontSize:'clamp(.88rem,3vw,.93rem)', fontWeight:'700', color:'var(--accent)',     lineHeight:'1.4'},
+  'service-desc': {fontSize:'clamp(.82rem,2.8vw,.86rem)',fontWeight:'400',color:'var(--text)',       lineHeight:'1.6'},
+  'b-cta':      {fontSize:'clamp(.85rem,3vw,.92rem)',   fontWeight:'400', color:'#fff',              lineHeight:'1.6'},
+  'b-footer':   {fontSize:'clamp(.72rem,2.5vw,.78rem)', fontWeight:'400', color:'var(--text-light)', lineHeight:'1.5'},
+};
+
+function resetElementToDefault(el){
+  if(!el) return;
+  // Strip all inline spans
+  el.querySelectorAll('span[style]').forEach(s => {
+    const parent = s.parentNode;
+    while(s.firstChild) parent.insertBefore(s.firstChild, s);
+    parent.removeChild(s);
+  });
+  // Also strip font tags from execCommand
+  el.querySelectorAll('font').forEach(f => {
+    const parent = f.parentNode;
+    while(f.firstChild) parent.insertBefore(f.firstChild, f);
+    parent.removeChild(f);
+  });
+  // Reset element style
+  const id = el.id || el.className.split(' ')[0];
+  const def = DEFAULT_STYLES[id] || DEFAULT_STYLES[el.className.split(' ')[0]];
+  if(def){
+    Object.entries(def).forEach(([k,v]) => el.style[k] = v);
+  } else {
+    el.removeAttribute('style');
+  }
+}
+
+function resetAllToDefault(){
+  saveUndo('איפוס עיצוב');
+  // Reset all named elements
+  ['b-title','b-tagline','b-intro1','b-intro2','b-cta','b-footer'].forEach(id => {
+    resetElementToDefault(document.getElementById(id));
+  });
+  // Reset services
+  document.querySelectorAll('.service-name').forEach(el => resetElementToDefault(el));
+  document.querySelectorAll('.service-desc').forEach(el => resetElementToDefault(el));
+}
+
+function resetCurrentElement(){
+  saveUndo('איפוס אלמנט');
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return;
+  const node = sel.anchorNode;
+  const el = node ? (node.nodeType===3 ? node.parentElement : node).closest('[contenteditable]') : null;
+  if(el) resetElementToDefault(el);
+}
+
+/* ════════ FORMAT ════════ */
+let currentFormat = 'free';
+const FORMAT_SCALE = { free:2.5, story:3.0, square:2.8, post:2.8, a4:2.5 };
+const FORMAT_LABELS = { free:'חופשי', story:'Story 9:16', square:'מרובע', post:'פוסט 4:5', a4:'A4' };
+
+function toggleFmtMenu(){
+  const m=document.getElementById('fmt-menu');
+  const btn=document.getElementById('fmt-btn');
+  if(m.style.display==='none'||!m.style.display){
+    const r=btn.getBoundingClientRect();
+    m.style.left=r.left+'px';
+    m.style.top=(r.bottom+4)+'px';
+    m.style.display='block';
+  } else {
+    m.style.display='none';
+  }
+}
+document.addEventListener('click',e=>{
+  const m=document.getElementById('fmt-menu');
+  if(m&&!m.contains(e.target)&&e.target.id!=='fmt-btn'&&!e.target.closest('#fmt-btn'))
+    m.style.display='none';
+});
+
+function setFormat(fmt){
+  currentFormat=fmt;
+  const card=document.getElementById('brochure');
+  // Remove all format classes
+  card.classList.remove('fmt-story','fmt-square','fmt-post','fmt-a4');
+  if(fmt!=='free') card.classList.add('fmt-'+fmt);
+  // Update label
+  document.getElementById('fmt-label').textContent=FORMAT_LABELS[fmt];
+  // Mark active option
+  document.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active',o.dataset.fmt===fmt));
+  document.getElementById('fmt-menu').style.display='none';
+}
+
+window.onload=()=>{init(); setTimeout(()=>saveUndo('מצב ראשוני'),300);};
+</script>
+</body></html>
